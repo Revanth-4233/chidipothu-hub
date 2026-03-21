@@ -57,13 +57,32 @@ export default function Properties() {
 
   const handleShare = async (p) => {
     let text = `Property: ${p.property_name || 'N/A'}\nType: ${p.property_type || 'N/A'}\nOwner: ${p.owner_name || 'N/A'}\nLocation: ${[p.village, p.mandal, p.district].filter(Boolean).join(', ') || 'N/A'}`;
-    
+    const filesArray = [];
+
     if (p.file_attachments && p.file_attachments.length > 0) {
-      text += `\n\nDocuments:\n` + p.file_attachments.map(f => `- ${f.name || 'File'}: ${f.url}`).join('\n');
+      toast.loading('Preparing files for sharing...', { id: 'share' });
+      for (const f of p.file_attachments) {
+        try {
+          const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/proxy-file/${f.public_id}?resource_type=${f.type === 'image' ? 'image' : 'raw'}`);
+          if (!res.ok) throw new Error('Fetch failed');
+          const blob = await res.blob();
+          const file = new File([blob], f.name || 'document', { type: blob.type || 'application/octet-stream' });
+          filesArray.push(file);
+        } catch (e) { console.error('Failed to fetch file', f); }
+      }
+      toast.dismiss('share');
+      // Append links anyway in case the recipient's sharing app strips attachments
+      text += `\n\nDocuments:\n` + p.file_attachments.map(f => `- ${f.name || 'File'}`).join('\n');
     }
 
     if (navigator.share) {
-      try { await navigator.share({ title: 'Property Details', text }); } catch(err) {}
+      try { 
+        if (filesArray.length > 0 && navigator.canShare && navigator.canShare({ files: filesArray })) {
+          await navigator.share({ title: 'Property Details', text, files: filesArray });
+        } else {
+          await navigator.share({ title: 'Property Details', text });
+        }
+      } catch(err) {}
     } else {
       navigator.clipboard.writeText(text);
       toast.success('Details copied to clipboard!');

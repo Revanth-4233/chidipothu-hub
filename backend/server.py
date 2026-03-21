@@ -10,6 +10,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import base64
+import urllib.request
 
 load_dotenv()
 
@@ -220,6 +221,17 @@ async def delete_file(public_id: str, user=Depends(get_current_user)):
     try:
         cloudinary.uploader.destroy(public_id)
         return {"deleted": True}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/proxy-file/{public_id:path}")
+def proxy_file(public_id: str, resource_type: str = "raw"):
+    url, _ = cloudinary.utils.cloudinary_url(public_id, resource_type=resource_type, sign_url=True)
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+        response = urllib.request.urlopen(req)
+        from fastapi.responses import StreamingResponse
+        return StreamingResponse(response, media_type=response.headers.get("Content-Type", "application/octet-stream"))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

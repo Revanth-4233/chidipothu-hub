@@ -56,7 +56,12 @@ export default function Properties() {
   useEffect(() => { fetchProps(); }, [fetchProps]);
 
   const handleShare = async (p) => {
-    const text = `Property: ${p.property_name || 'N/A'}\nType: ${p.property_type || 'N/A'}\nOwner: ${p.owner_name || 'N/A'}\nLocation: ${[p.village, p.mandal, p.district].filter(Boolean).join(', ') || 'N/A'}`;
+    let text = `Property: ${p.property_name || 'N/A'}\nType: ${p.property_type || 'N/A'}\nOwner: ${p.owner_name || 'N/A'}\nLocation: ${[p.village, p.mandal, p.district].filter(Boolean).join(', ') || 'N/A'}`;
+    
+    if (p.file_attachments && p.file_attachments.length > 0) {
+      text += `\n\nDocuments:\n` + p.file_attachments.map(f => `- ${f.name || 'File'}: ${f.url}`).join('\n');
+    }
+
     if (navigator.share) {
       try { await navigator.share({ title: 'Property Details', text }); } catch(err) {}
     } else {

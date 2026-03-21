@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProperties, deleteProperty, getLocations } from '../api';
-import { Search, Edit2, Trash2, Plus, Filter } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Filter, Share2 } from 'lucide-react';
 import { PhotoGrid } from '../components/Gallery';
 import toast from 'react-hot-toast';
 
@@ -54,6 +54,16 @@ export default function Properties() {
   }, [search, filterType, filterState, filterVillage]);
 
   useEffect(() => { fetchProps(); }, [fetchProps]);
+
+  const handleShare = async (p) => {
+    const text = `Property: ${p.property_name || 'N/A'}\nType: ${p.property_type || 'N/A'}\nOwner: ${p.owner_name || 'N/A'}\nLocation: ${[p.village, p.mandal, p.district].filter(Boolean).join(', ') || 'N/A'}`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Property Details', text }); } catch(err) {}
+    } else {
+      navigator.clipboard.writeText(text);
+      toast.success('Details copied to clipboard!');
+    }
+  };
 
   const handleDelete = async (id) => {
     try {
@@ -218,6 +228,11 @@ export default function Properties() {
                   <td style={{ padding: '14px 16px' }}>
                     <div style={{ display: 'flex', gap: '6px' }}>
                       <button
+                        onClick={() => handleShare(p)}
+                        style={{ padding: '6px 8px', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#10b981' }}
+                        title="Share"
+                      ><Share2 size={15} /></button>
+                      <button
                         onClick={() => navigate(`/edit-property/${p.id}`)}
                         style={{ padding: '6px 8px', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#3b82f6' }}
                         title="Edit"
@@ -258,6 +273,11 @@ export default function Properties() {
                     </p>
                   </div>
                   <div style={{ display: 'flex', gap: '4px', marginLeft: '8px' }}>
+                    <button onClick={() => handleShare(p)}
+                      title="Share"
+                      style={{ padding: '6px', background: '#ecfdf5', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#10b981', display:'flex' }}>
+                      <Share2 size={14} />
+                    </button>
                     <button onClick={() => navigate(`/edit-property/${p.id}`)}
                       style={{ padding: '6px', background: '#eff6ff', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#3b82f6', display:'flex' }}>
                       <Edit2 size={14} />

@@ -59,20 +59,40 @@ export default function Properties() {
     let text = `Property: ${p.property_name || 'N/A'}\nType: ${p.property_type || 'N/A'}\nOwner: ${p.owner_name || 'N/A'}\nLocation: ${[p.village, p.mandal, p.district].filter(Boolean).join(', ') || 'N/A'}`;
     const filesArray = [];
 
+    let baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
+    if (baseUrl.includes('localhost') && window.location.hostname !== 'localhost') {
+      baseUrl = baseUrl.replace('localhost', window.location.hostname);
+    }
+
     if (p.file_attachments && p.file_attachments.length > 0) {
       toast.loading('Preparing files for sharing...', { id: 'share' });
       for (const f of p.file_attachments) {
         try {
-          const res = await fetch(`${process.env.REACT_APP_BACKEND_URL || ''}/api/proxy-file/${f.public_id}?resource_type=${f.type === 'image' ? 'image' : 'raw'}`);
+          const downloadUrl = `${baseUrl}/api/proxy-file/${f.public_id}?resource_type=${f.type === 'image' ? 'image' : 'raw'}`;
+          
+          let mime = 'application/octet-stream';
+          if (f.name) {
+            const name = f.name.toLowerCase();
+            if (name.endsWith('.pdf')) mime = 'application/pdf';
+            else if (name.endsWith('.png')) mime = 'image/png';
+            else if (name.endsWith('.jpg') || name.endsWith('.jpeg')) mime = 'image/jpeg';
+            else if (name.endsWith('.doc')) mime = 'application/msword';
+            else if (name.endsWith('.docx')) mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+          }
+
+          const res = await fetch(downloadUrl);
           if (!res.ok) throw new Error('Fetch failed');
           const blob = await res.blob();
-          const file = new File([blob], f.name || 'document', { type: blob.type || 'application/octet-stream' });
+          const file = new File([blob], f.name || 'document', { type: mime });
           filesArray.push(file);
         } catch (e) { console.error('Failed to fetch file', f); }
       }
       toast.dismiss('share');
-      // Append links anyway in case the recipient's sharing app strips attachments
-      text += `\n\nDocuments:\n` + p.file_attachments.map(f => `- ${f.name || 'File'}`).join('\n');
+      
+      text += `\n\nDocuments:\n` + p.file_attachments.map(f => {
+        const dUrl = `${baseUrl}/api/proxy-file/${f.public_id}?resource_type=${f.type === 'image' ? 'image' : 'raw'}`;
+        return `- ${f.name || 'File'}: ${dUrl}`;
+      }).join('\n');
     }
 
     if (navigator.share) {
@@ -82,10 +102,10 @@ export default function Properties() {
         } else {
           await navigator.share({ title: 'Property Details', text });
         }
-      } catch(err) {}
+      } catch(err) { console.error('Share error', err); }
     } else {
       navigator.clipboard.writeText(text);
-      toast.success('Details copied to clipboard!');
+      toast.success('Details and links copied to clipboard!');
     }
   };
 

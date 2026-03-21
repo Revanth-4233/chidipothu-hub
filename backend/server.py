@@ -170,7 +170,7 @@ async def send_otp(req: OTPRequest):
 
 @app.post("/api/auth/password-login")
 async def password_login(req: PasswordLogin):
-    if req.password != "234":
+    if req.password != os.getenv("LOGIN_PASSWORD", "234"):
         raise HTTPException(status_code=401, detail="Incorrect password")
     token = create_jwt("admin@chidipothu.hub")
     return {"token": token, "user": "CHIDIPOTHU SRIDHAR"}

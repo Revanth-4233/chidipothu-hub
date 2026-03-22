@@ -88,11 +88,6 @@ export default function Properties() {
         } catch (e) { console.error('Failed to fetch file', f); }
       }
       toast.dismiss('share');
-      
-      text += `\n\nDocuments:\n` + p.file_attachments.map(f => {
-        const dUrl = `${baseUrl}/api/proxy-file/${f.public_id}?resource_type=${f.type === 'image' ? 'image' : 'raw'}`;
-        return `- ${f.name || 'File'}: ${dUrl}`;
-      }).join('\n');
     }
 
     if (navigator.share) {
@@ -105,7 +100,7 @@ export default function Properties() {
       } catch(err) { console.error('Share error', err); }
     } else {
       navigator.clipboard.writeText(text);
-      toast.success('Details and links copied to clipboard!');
+      toast.success('Property details copied to clipboard!');
     }
   };
 

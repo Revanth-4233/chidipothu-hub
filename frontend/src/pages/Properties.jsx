@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getProperties, deleteProperty, getLocations } from '../api';
-import { Search, Edit2, Trash2, Plus, Filter, Share2 } from 'lucide-react';
+import { Search, Edit2, Trash2, Plus, Filter, Share2, Download, FileText } from 'lucide-react';
 import { PhotoGrid } from '../components/Gallery';
 import toast from 'react-hot-toast';
 
@@ -56,7 +56,8 @@ export default function Properties() {
   useEffect(() => { fetchProps(); }, [fetchProps]);
 
   const handleShare = async (p) => {
-    let text = `Property: ${p.property_name || 'N/A'}\nType: ${p.property_type || 'N/A'}\nOwner: ${p.owner_name || 'N/A'}\nLocation: ${[p.village, p.mandal, p.district].filter(Boolean).join(', ') || 'N/A'}`;
+    let pName = p.property_name || 'Unnamed Property';
+    let text = `Property: ${pName}\nType: ${p.property_type || 'N/A'}\nOwner: ${p.owner_name || 'N/A'}\nLocation: ${[p.village, p.mandal, p.district].filter(Boolean).join(', ') || 'N/A'}`;
     const filesArray = [];
 
     let baseUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8001';
@@ -65,7 +66,7 @@ export default function Properties() {
     }
 
     if (p.file_attachments && p.file_attachments.length > 0) {
-      toast.loading('Preparing files for sharing...', { id: 'share' });
+      const toastId = toast.loading(`Fetching ${p.file_attachments.length} document(s)...`);
       for (const f of p.file_attachments) {
         try {
           const downloadUrl = `${baseUrl}/api/proxy-file/${f.public_id}?resource_type=${f.type === 'image' ? 'image' : 'raw'}`;
@@ -76,18 +77,19 @@ export default function Properties() {
             if (name.endsWith('.pdf')) mime = 'application/pdf';
             else if (name.endsWith('.png')) mime = 'image/png';
             else if (name.endsWith('.jpg') || name.endsWith('.jpeg')) mime = 'image/jpeg';
-            else if (name.endsWith('.doc')) mime = 'application/msword';
-            else if (name.endsWith('.docx')) mime = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
           }
 
           const res = await fetch(downloadUrl);
-          if (!res.ok) throw new Error('Fetch failed');
+          if (!res.ok) throw new Error(`HTTP Error ${res.status}`);
           const blob = await res.blob();
           const file = new File([blob], f.name || 'document', { type: mime });
           filesArray.push(file);
-        } catch (e) { console.error('Failed to fetch file', f); }
+        } catch (e) { 
+          console.error('Fetch failed:', e);
+          toast.error(`Failed to fetch: ${f.name || 'File'}`, { id: toastId });
+        }
       }
-      toast.dismiss('share');
+      toast.success('Documents ready!', { id: toastId });
     }
 
     if (navigator.share) {
@@ -95,13 +97,32 @@ export default function Properties() {
         if (filesArray.length > 0 && navigator.canShare && navigator.canShare({ files: filesArray })) {
           await navigator.share({ title: 'Property Details', text, files: filesArray });
         } else {
+          if (filesArray.length > 0) toast.error('This browser does not support sharing files. Sharing text only.');
           await navigator.share({ title: 'Property Details', text });
         }
-      } catch(err) { console.error('Share error', err); }
+      } catch(err) { 
+        console.error('Share error', err); 
+        if (err.name !== 'AbortError') toast.error('Sharing failed: ' + err.message);
+      }
     } else {
       navigator.clipboard.writeText(text);
       toast.success('Property details copied to clipboard!');
     }
+  };
+
+  const handleDownloadDocs = async (p) => {
+    if (!p.file_attachments?.length) return;
+    toast.loading('Starting downloads...');
+    for (const f of p.file_attachments) {
+      const link = document.createElement('a');
+      link.href = f.url;
+      link.target = '_blank';
+      link.download = f.name || 'document';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+    toast.dismiss();
   };
 
   const handleDelete = async (id) => {
@@ -271,6 +292,13 @@ export default function Properties() {
                         style={{ padding: '6px 8px', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#10b981' }}
                         title="Share"
                       ><Share2 size={15} /></button>
+                      {p.file_attachments?.length > 0 && (
+                        <button
+                          onClick={() => handleDownloadDocs(p)}
+                          style={{ padding: '6px 8px', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#6366f1' }}
+                          title="Download All Docs"
+                        ><Download size={15} /></button>
+                      )}
                       <button
                         onClick={() => navigate(`/edit-property/${p.id}`)}
                         style={{ padding: '6px 8px', background: 'none', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#3b82f6' }}
@@ -317,6 +345,13 @@ export default function Properties() {
                       style={{ padding: '6px', background: '#ecfdf5', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#10b981', display:'flex' }}>
                       <Share2 size={14} />
                     </button>
+                    {p.file_attachments?.length > 0 && (
+                      <button onClick={() => handleDownloadDocs(p)}
+                        title="Download All Docs"
+                        style={{ padding: '6px', background: '#eef2ff', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#6366f1', display:'flex' }}>
+                        <Download size={14} />
+                      </button>
+                    )}
                     <button onClick={() => navigate(`/edit-property/${p.id}`)}
                       style={{ padding: '6px', background: '#eff6ff', border: 'none', borderRadius: '6px', cursor: 'pointer', color: '#3b82f6', display:'flex' }}>
                       <Edit2 size={14} />

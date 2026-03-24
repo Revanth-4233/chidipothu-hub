@@ -196,7 +196,7 @@ async def verify_otp(req: OTPVerify):
 # ─── File Upload ───────────────────────────────────────────────────────────────
 
 @app.post("/api/upload")
-async def upload_file(req: FileUploadRequest, user=Depends(get_current_user)):
+async def upload_file(req: FileUploadRequest):
     try:
         data_uri = f"data:application/octet-stream;base64,{req.file_data}"
 
@@ -217,7 +217,7 @@ async def upload_file(req: FileUploadRequest, user=Depends(get_current_user)):
         raise HTTPException(status_code=500, detail=f"Upload failed: {str(e)}")
 
 @app.delete("/api/upload/{public_id:path}")
-async def delete_file(public_id: str, user=Depends(get_current_user)):
+async def delete_file(public_id: str):
     try:
         cloudinary.uploader.destroy(public_id)
         return {"deleted": True}
@@ -238,7 +238,7 @@ def proxy_file(public_id: str, resource_type: str = "raw"):
 # ─── Dashboard ────────────────────────────────────────────────────────────────
 
 @app.get("/api/dashboard")
-async def get_dashboard(user=Depends(get_current_user)):
+async def get_dashboard():
     total = await db.properties.count_documents({})
     types = ["House", "Shop", "Agriculture Land", "Site", "Commercial Godown"]
     counts = {}
@@ -274,7 +274,7 @@ async def get_dashboard(user=Depends(get_current_user)):
 # ─── Locations ────────────────────────────────────────────────────────────────
 
 @app.get("/api/locations")
-async def get_locations(user=Depends(get_current_user)):
+async def get_locations():
     pipeline = [
         {"$group": {"_id": {"state": "$state", "district": "$district", "mandal": "$mandal", "village": "$village"}}},
         {"$project": {
@@ -293,8 +293,7 @@ def serialize_property(p):
 
 @app.get("/api/properties")
 async def get_properties(
-    search: str = "", state: str = "", village: str = "", property_type: str = "",
-    user=Depends(get_current_user)
+    search: str = "", state: str = "", village: str = "", property_type: str = ""
 ):
     query = {}
     if state:
@@ -318,7 +317,7 @@ async def get_properties(
     return [serialize_property(p) for p in props]
 
 @app.get("/api/properties/{prop_id}")
-async def get_property(prop_id: str, user=Depends(get_current_user)):
+async def get_property(prop_id: str):
     from bson import ObjectId
     p = await db.properties.find_one({"_id": ObjectId(prop_id)})
     if not p:
@@ -326,7 +325,7 @@ async def get_property(prop_id: str, user=Depends(get_current_user)):
     return serialize_property(p)
 
 @app.post("/api/properties")
-async def create_property(prop: PropertyCreate, user=Depends(get_current_user)):
+async def create_property(prop: PropertyCreate):
     doc = prop.model_dump()
     doc["created_at"] = datetime.utcnow()
     doc["updated_at"] = datetime.utcnow()
@@ -334,7 +333,7 @@ async def create_property(prop: PropertyCreate, user=Depends(get_current_user)):
     return {"id": str(result.inserted_id), "message": "Property created"}
 
 @app.put("/api/properties/{prop_id}")
-async def update_property(prop_id: str, prop: PropertyCreate, user=Depends(get_current_user)):
+async def update_property(prop_id: str, prop: PropertyCreate):
     from bson import ObjectId
     doc = prop.dict()
     doc["updated_at"] = datetime.utcnow()
@@ -344,7 +343,7 @@ async def update_property(prop_id: str, prop: PropertyCreate, user=Depends(get_c
     return {"message": "Property updated"}
 
 @app.delete("/api/properties/{prop_id}")
-async def delete_property(prop_id: str, user=Depends(get_current_user)):
+async def delete_property(prop_id: str):
     from bson import ObjectId
     result = await db.properties.delete_one({"_id": ObjectId(prop_id)})
     if result.deleted_count == 0:

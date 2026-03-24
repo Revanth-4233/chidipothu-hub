@@ -1,15 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-import Login from './components/Login';
 import Layout from './components/Layout';
 import Dashboard from './pages/Dashboard';
 import Properties from './pages/Properties';
 import PropertyForm from './pages/PropertyForm';
 
 function App() {
-  const [isAuth, setIsAuth] = useState(!!localStorage.getItem('ch_token'));
-
   useEffect(() => {
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
@@ -17,15 +14,6 @@ function App() {
       });
     }
   }, []);
-
-  if (!isAuth) {
-    return (
-      <>
-        <Login onLogin={() => setIsAuth(true)} />
-        <Toaster position="top-right" />
-      </>
-    );
-  }
 
   return (
     <BrowserRouter>

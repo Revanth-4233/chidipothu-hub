@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Building2, PlusCircle, LogOut, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Building2, PlusCircle, Menu, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 export default function Layout({ children }) {
@@ -8,13 +8,6 @@ export default function Layout({ children }) {
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  const handleLogout = () => {
-    localStorage.removeItem('ch_token');
-    localStorage.removeItem('ch_email');
-    toast.success('Logged out');
-    navigate('/');
-    window.location.reload();
-  };
 
   const navItems = [
     { path: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
@@ -68,18 +61,6 @@ export default function Layout({ children }) {
         })}
       </nav>
 
-      <button
-        onClick={handleLogout}
-        style={{
-          display: 'flex', alignItems: 'center', gap: '10px',
-          padding: '12px 14px', borderRadius: '10px', border: 'none',
-          background: 'rgba(239,68,68,0.1)', color: '#f87171',
-          cursor: 'pointer', fontSize: '14px', width: '100%',
-        }}
-      >
-        <LogOut size={16} />
-        <span>Logout</span>
-      </button>
     </aside>
   );
 

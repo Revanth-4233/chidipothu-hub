@@ -22,14 +22,25 @@ const card = { background: '#fff', borderRadius: '14px', padding: '20px', boxSha
 
 export default function Dashboard() {
   const [data, setData] = useState(null);
+  const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    getDashboard().then((r) => setData(r.data)).catch(console.error).finally(() => setLoading(false));
+    getDashboard()
+      .then((r) => setData(r.data))
+      .catch((err) => {
+        console.error(err);
+        setError(err.message || 'Failed to load data');
+      })
+      .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <div style={{ textAlign: 'center', padding: '60px', color: '#64748b' }}>Loading dashboard...</div>;
-  if (!data) return <div style={{ color: '#ef4444' }}>Failed to load data</div>;
+  if (error) return <div style={{ padding: '20px', color: '#ef4444', background: '#fef2f2', borderRadius: '8px', border: '1px solid #fecaca' }}>
+    <strong>Error:</strong> {error}
+    <p style={{ fontSize: '13px', marginTop: '8px', color: '#b91c1c' }}>Please ensure the backend server is running on port 8001.</p>
+  </div>;
+  if (!data) return <div style={{ color: '#ef4444' }}>No data available</div>;
 
   return (
     <div>
